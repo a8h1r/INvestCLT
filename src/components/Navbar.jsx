@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { BookOpen, TrendingUp, Trophy, User, ChevronDown, Flame } from 'lucide-react';
+import { BookOpen, TrendingUp, Trophy, User, ChevronDown, Flame, Lock } from 'lucide-react';
 import { AGE_GROUPS } from '../data';
 
 export default function Navbar({ 
   appMode, 
   onModeChange, 
   ageGroup, 
-  onAgeGroupChange, 
   userProgress, 
   onShowLeaderboard 
 }) {
-  const [showAgeMenu, setShowAgeMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const currentGroup = AGE_GROUPS.find(g => g.id === ageGroup);
@@ -52,32 +50,14 @@ export default function Navbar({
         </button>
       </div>
 
-      {/* Age Group Selector */}
-      <div className="relative shrink-0">
-        <button
-          id="age-group-btn"
-          onClick={() => { setShowAgeMenu(p => !p); setShowProfileMenu(false); }}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-investSidebar/80 bg-investBg text-sm font-semibold text-investText hover:bg-investSidebar transition-colors"
-        >
-          <span>{currentGroup?.label}</span>
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAgeMenu ? 'rotate-180' : ''}`} />
-        </button>
-
-        {showAgeMenu && (
-          <div className="absolute top-full mt-2 left-0 w-64 bg-white rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
-            {AGE_GROUPS.map(group => (
-              <button
-                key={group.id}
-                onClick={() => { onAgeGroupChange(group.id); setShowAgeMenu(false); }}
-                className={`w-full text-left px-4 py-3 flex flex-col gap-0.5 hover:bg-investBg transition-colors
-                  ${ageGroup === group.id ? 'bg-investPrimary/10 border-l-2 border-investPrimary' : ''}`}
-              >
-                <span className="text-sm font-bold text-investText">{group.label}</span>
-                <span className="text-xs text-investText/50">{group.grades} · {group.description}</span>
-              </button>
-            ))}
-          </div>
-        )}
+      {/* Age Group — Read-only locked badge */}
+      <div
+        id="age-group-badge"
+        title="Your course level is set by your school account and cannot be changed manually."
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-investSidebar/80 bg-investBg text-sm font-semibold text-investText cursor-default select-none shrink-0"
+      >
+        <span>{currentGroup?.label}</span>
+        <Lock className="w-3 h-3 text-investText/30" />
       </div>
 
       {/* Leaderboard Button (Students only) */}

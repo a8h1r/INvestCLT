@@ -125,7 +125,6 @@ function App() {
         appMode={appMode}
         onModeChange={(mode) => { setAppMode(mode); setShowLeaderboard(false); }}
         ageGroup={ageGroup}
-        onAgeGroupChange={handleAgeGroupChange}
         userProgress={userProgress}
         onShowLeaderboard={() => { setAppMode('invest'); setShowLeaderboard(true); }}
       />
