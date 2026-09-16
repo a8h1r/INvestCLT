@@ -39,76 +39,95 @@ function LeaderboardPanel() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl mx-auto w-full">
-      <div className="flex items-center gap-3">
-        <Trophy className="w-6 h-6 text-investPrimary" />
-        <div>
-          <h2 className="font-black text-2xl font-serif text-investText">School Leaderboard</h2>
-          <p className="text-sm text-investText/60">Ranked by average student portfolio return · Class of 2025</p>
-        </div>
-      </div>
+    <div className="flex-1 overflow-y-auto">
+      <div className="h-full flex gap-0">
 
-      {/* Your School Stats */}
-      <div className="bg-investPrimary/10 border border-investPrimary/30 rounded-2xl p-4">
-        <p className="text-xs font-bold uppercase tracking-wider text-investPrimary mb-2">Your School</p>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-investText">{CURRENT_STUDENT.school}</p>
-            <p className="text-sm text-investText/60">
-              You are ranked <span className="font-bold text-investPrimary">#{CURRENT_STUDENT.classRank}</span> out of {CURRENT_STUDENT.classTotal} students
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <RankBadge rank={CURRENT_STUDENT.schoolRank} size="lg" />
-            <div className="text-right">
-              <p className="text-2xl font-black text-investPrimary">#{CURRENT_STUDENT.schoolRank}</p>
-              <p className="text-xs text-investText/50">School Rank</p>
+        {/* LEFT COLUMN — Your school + Podium */}
+        <div className="w-[420px] shrink-0 border-r border-investSidebar/80 p-6 space-y-5 overflow-y-auto bg-investSidebar/40">
+          <div className="flex items-center gap-3">
+            <Trophy className="w-6 h-6 text-investPrimary" />
+            <div>
+              <h2 className="font-black text-xl font-serif text-investText">School Leaderboard</h2>
+              <p className="text-xs text-investText/50">Avg portfolio return · Class of 2025</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Podium Top 3 */}
-      <div>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-3">Podium Schools</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {podium.map((s, i) => (
-            <div key={s.rank} className={`bg-gradient-to-b ${podiumColors[i]} border rounded-2xl p-4 text-center`}>
-              <div className="flex justify-center mb-2">
-                <RankBadge rank={s.rank} size="lg" />
-              </div>
-              <p className="text-xs font-bold text-investText leading-tight">{s.school.replace(' High School', '').replace(' High', '')}</p>
-              <p className="text-lg font-black text-investPrimary mt-1">{formatPct(s.avgReturn)}</p>
-              <p className="text-xs text-investText/50">{s.students} students</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Full Rankings */}
-      <div>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-3">Full Rankings</h3>
-        <div className="space-y-2">
-          {SCHOOL_LEADERBOARD.map(s => (
-            <div
-              key={s.rank}
-              className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors
-                ${s.school === CURRENT_STUDENT.school ? 'bg-investPrimary/10 border-investPrimary/30' : 'bg-white border-black/5 hover:bg-investBg'}`}
-            >
-              <RankBadge rank={s.rank} />
+          {/* Your School Card */}
+          <div className="bg-investPrimary/10 border border-investPrimary/30 rounded-2xl p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-investPrimary mb-3">Your School</p>
+            <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-investText">{s.school}</p>
-                <div className="flex items-center gap-1 text-xs text-investText/50">
-                  <Users className="w-3 h-3" />
-                  {s.students} students
-                </div>
+                <p className="font-bold text-investText text-base leading-tight">{CURRENT_STUDENT.school}</p>
+                <p className="text-sm text-investText/60 mt-1">
+                  You are ranked <span className="font-bold text-investPrimary">#{CURRENT_STUDENT.classRank}</span> of {CURRENT_STUDENT.classTotal} students
+                </p>
+                <p className="text-xs text-investText/40 mt-2">Your return: <span className="font-bold text-emerald-600">{formatPct(CURRENT_STUDENT.portfolioReturn)}</span></p>
               </div>
-              <span className={`text-sm font-black ${s.avgReturn >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                {formatPct(s.avgReturn)}
-              </span>
+              <div className="text-center shrink-0">
+                <RankBadge rank={CURRENT_STUDENT.schoolRank} size="lg" />
+                <p className="text-3xl font-black text-investText mt-1">#{CURRENT_STUDENT.schoolRank}</p>
+                <p className="text-xs text-investText/40">School Rank</p>
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Podium Top 3 */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-3">Podium Schools</h3>
+            <div className="space-y-3">
+              {podium.map((s, i) => (
+                <div key={s.rank} className={`bg-gradient-to-r ${podiumColors[i]} border rounded-2xl p-4 flex items-center gap-4`}>
+                  <RankBadge rank={s.rank} size="lg" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-investText truncate">{s.school.replace(' High School', '').replace(' High', '')}</p>
+                    <div className="flex items-center gap-1 text-xs text-investText/50 mt-0.5">
+                      <Users className="w-3 h-3" />
+                      {s.students} students
+                    </div>
+                  </div>
+                  <p className="text-xl font-black text-investPrimary shrink-0">{formatPct(s.avgReturn)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* RIGHT COLUMN — Full Rankings */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-4">Full Rankings</h3>
+          <div className="space-y-2">
+            {SCHOOL_LEADERBOARD.map(s => (
+              <div
+                key={s.rank}
+                className={`flex items-center gap-4 px-5 py-4 rounded-2xl border transition-all
+                  ${s.school === CURRENT_STUDENT.school
+                    ? 'bg-investPrimary/10 border-investPrimary/30 shadow-sm'
+                    : 'bg-white border-black/5 hover:bg-investBg hover:border-investSidebar'}`}
+              >
+                <RankBadge rank={s.rank} />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-investText">{s.school}</p>
+                  <div className="flex items-center gap-1 text-xs text-investText/50 mt-0.5">
+                    <Users className="w-3 h-3" />
+                    {s.students} participating students
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`text-base font-black ${s.avgReturn >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {formatPct(s.avgReturn)}
+                  </p>
+                  <p className="text-xs text-investText/40">avg return</p>
+                </div>
+                {s.school === CURRENT_STUDENT.school && (
+                  <div className="shrink-0 bg-investPrimary/20 text-investPrimary text-xs font-bold px-2 py-1 rounded-lg">
+                    You
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
