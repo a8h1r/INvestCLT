@@ -1,0 +1,145 @@
+import { useState } from 'react';
+import { BookOpen, TrendingUp, Trophy, User, ChevronDown, Flame } from 'lucide-react';
+import { AGE_GROUPS } from '../data';
+
+export default function Navbar({ 
+  appMode, 
+  onModeChange, 
+  ageGroup, 
+  onAgeGroupChange, 
+  userProgress, 
+  onShowLeaderboard 
+}) {
+  const [showAgeMenu, setShowAgeMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const currentGroup = AGE_GROUPS.find(g => g.id === ageGroup);
+
+  return (
+    <header className="h-16 bg-investBg border-b border-investSidebar/80 flex items-center px-6 gap-6 shrink-0 sticky top-0 z-50 shadow-sm">
+      
+      {/* Logo */}
+      <div className="flex items-center gap-3 mr-2 shrink-0">
+        <div className="w-8 h-8 bg-investPrimary rounded flex items-center justify-center shadow">
+          <span className="text-white font-bold font-serif text-lg leading-none">i</span>
+        </div>
+        <span className="font-black text-xl font-serif text-investText tracking-tight">iNvest CLT</span>
+      </div>
+
+      {/* Mode Toggle Pill */}
+      <div className="flex items-center bg-investSidebar rounded-xl p-1 gap-1 shrink-0">
+        <button
+          id="learn-mode-btn"
+          onClick={() => onModeChange('learn')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200
+            ${appMode === 'learn'
+              ? 'bg-investPrimary text-white shadow-sm'
+              : 'text-investText/60 hover:text-investText'}`}
+        >
+          <BookOpen className="w-4 h-4" />
+          Learn
+        </button>
+        <button
+          id="invest-mode-btn"
+          onClick={() => onModeChange('invest')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200
+            ${appMode === 'invest'
+              ? 'bg-investPrimary text-white shadow-sm'
+              : 'text-investText/60 hover:text-investText'}`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          Invest
+        </button>
+      </div>
+
+      {/* Age Group Selector */}
+      <div className="relative shrink-0">
+        <button
+          id="age-group-btn"
+          onClick={() => { setShowAgeMenu(p => !p); setShowProfileMenu(false); }}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-investSidebar/80 bg-investBg text-sm font-semibold text-investText hover:bg-investSidebar transition-colors"
+        >
+          <span>{currentGroup?.label}</span>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAgeMenu ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showAgeMenu && (
+          <div className="absolute top-full mt-2 left-0 w-64 bg-white rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
+            {AGE_GROUPS.map(group => (
+              <button
+                key={group.id}
+                onClick={() => { onAgeGroupChange(group.id); setShowAgeMenu(false); }}
+                className={`w-full text-left px-4 py-3 flex flex-col gap-0.5 hover:bg-investBg transition-colors
+                  ${ageGroup === group.id ? 'bg-investPrimary/10 border-l-2 border-investPrimary' : ''}`}
+              >
+                <span className="text-sm font-bold text-investText">{group.label}</span>
+                <span className="text-xs text-investText/50">{group.grades} · {group.description}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Leaderboard Button (Students only) */}
+      {ageGroup !== 'adult' && (
+        <button
+          id="leaderboard-btn"
+          onClick={onShowLeaderboard}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-colors shrink-0"
+        >
+          <Trophy className="w-4 h-4" />
+          School Leaderboard
+        </button>
+      )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* XP & Streak Stats */}
+      <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-1.5 text-sm font-bold text-investPrimary">
+          <span className="text-lg">{userProgress.xp}</span>
+          <span className="text-xs font-medium text-investText/50 uppercase tracking-wider">XP</span>
+        </div>
+        <div className="flex items-center gap-1 text-sm font-bold text-orange-500">
+          <Flame className="w-4 h-4" />
+          <span>{userProgress.streak}</span>
+        </div>
+      </div>
+
+      {/* User Profile */}
+      <div className="relative shrink-0">
+        <button
+          id="profile-btn"
+          onClick={() => { setShowProfileMenu(p => !p); setShowAgeMenu(false); }}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-investPrimary/10 hover:bg-investPrimary/20 transition-colors"
+        >
+          <div className="w-7 h-7 rounded-full bg-investPrimary/30 flex items-center justify-center">
+            <User className="w-4 h-4 text-investPrimary" />
+          </div>
+          <span className="text-sm font-semibold text-investText">Alex</span>
+          <ChevronDown className={`w-3.5 h-3.5 text-investText/50 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showProfileMenu && (
+          <div className="absolute top-full mt-2 right-0 w-48 bg-white rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
+            <div className="px-4 py-3 border-b border-black/5">
+              <p className="text-sm font-bold text-investText">Alex Johnson</p>
+              <p className="text-xs text-investText/50">West Charlotte High School</p>
+            </div>
+            <button className="w-full text-left px-4 py-2.5 text-sm text-investText/70 hover:bg-investBg transition-colors">
+              My Profile
+            </button>
+            <button className="w-full text-left px-4 py-2.5 text-sm text-investText/70 hover:bg-investBg transition-colors">
+              Settings
+            </button>
+            <button className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-black/5">
+              Sign Out
+            </button>
+          </div>
+        )}
+      </div>
+
+    </header>
+  );
+}
