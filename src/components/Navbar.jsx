@@ -60,8 +60,8 @@ export default function Navbar({
         <Lock className="w-3 h-3 text-investText/30" />
       </div>
 
-      {/* Leaderboard Button (Students only) */}
-      {ageGroup !== 'adult' && (
+      {/* Leaderboard Button — only visible in Invest mode for students */}
+      {appMode === 'invest' && ageGroup !== 'adult' && (
         <button
           id="leaderboard-btn"
           onClick={onShowLeaderboard}
@@ -91,7 +91,7 @@ export default function Navbar({
       <div className="relative shrink-0">
         <button
           id="profile-btn"
-          onClick={() => { setShowProfileMenu(p => !p); setShowAgeMenu(false); }}
+          onClick={() => setShowProfileMenu(p => !p)}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-investPrimary/10 hover:bg-investPrimary/20 transition-colors"
         >
           <div className="w-7 h-7 rounded-full bg-investPrimary/30 flex items-center justify-center">
