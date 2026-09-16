@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { TrendingUp, TrendingDown, Trophy, ShoppingCart, X, ChevronUp, ChevronDown, Users, BarChart2, Briefcase, Medal, Info, Circle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Trophy, ShoppingCart, X, ChevronUp, ChevronDown, Users, BarChart2, Briefcase, Medal, Info, Circle, RefreshCw } from 'lucide-react';
 import { MOCK_STOCKS, SCHOOL_LEADERBOARD, CURRENT_STUDENT } from '../data';
+import { fetchMultipleQuotes, isLiveApiConfigured } from '../services/stockService';
 
 const INITIAL_CASH = 10000;
 
@@ -223,6 +224,25 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
   const [holdings, setHoldings] = useState([]);
   const [buyTarget, setBuyTarget] = useState(null);
   const [activeTab, setActiveTab] = useState(showLeaderboard ? 'leaderboard' : 'market');
+  const [stocks, setStocks] = useState(MOCK_STOCKS);
+  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
+  const isLive = isLiveApiConfigured();
+
+  useEffect(() => {
+    let isMounted = true;
+    if (isLive) {
+      setIsLoadingQuotes(true);
+      const tickers = MOCK_STOCKS.map(s => s.ticker);
+      fetchMultipleQuotes(tickers).then(updated => {
+        if (isMounted && updated && updated.length) {
+          setStocks(updated);
+        }
+      }).finally(() => {
+        if (isMounted) setIsLoadingQuotes(false);
+      });
+    }
+    return () => { isMounted = false; };
+  }, [isLive]);
 
   if (showLeaderboard && activeTab !== 'leaderboard') {
     setActiveTab('leaderboard');
@@ -246,7 +266,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
   };
 
   const portfolioValue = holdings.reduce((sum, h) => {
-    const current = MOCK_STOCKS.find(s => s.ticker === h.ticker)?.price ?? h.avgCost;
+    const current = stocks.find(s => s.ticker === h.ticker)?.price ?? h.avgCost;
     return sum + current * h.shares;
   }, 0);
   const totalValue = cashBalance + portfolioValue;
@@ -325,8 +345,10 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
                 {ageGroup === 'adult' ? 'Market Watchlist' : 'Mock Market — Practice Trades'}
               </h2>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold text-investText/50">Simulated · Live prices</span>
+                <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                <span className="text-xs font-semibold text-investText/60">
+                  {isLive ? (isLoadingQuotes ? 'Updating quotes...' : 'Live Finnhub Market Data') : 'Demo Mode (Static Quotes)'}
+                </span>
               </div>
             </div>
 
@@ -357,7 +379,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
 
             {/* Stock List */}
             <div className="px-4 pb-6 space-y-1">
-              {MOCK_STOCKS.map(stock => (
+              {stocks.map(stock => (
                 <StockRow key={stock.ticker} stock={stock} onBuy={setBuyTarget} />
               ))}
             </div>
