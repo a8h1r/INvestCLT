@@ -364,52 +364,128 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
           </div>
         )}
 
-        {/* Portfolio Tab */}
+        {/* Portfolio Tab — two column: holdings left, summary right */}
         {activeTab === 'portfolio' && (
-          <div className="h-full overflow-y-auto p-6 space-y-6 max-w-3xl mx-auto w-full">
-            <div className="flex items-center gap-3">
-              <Briefcase className="w-6 h-6 text-investPrimary" />
-              <h2 className="font-black text-2xl font-serif text-investText">My Portfolio</h2>
-            </div>
-            {holdings.length === 0 ? (
-              <div className="text-center py-20 space-y-3">
-                <TrendingUp className="w-12 h-12 text-investText/20 mx-auto" />
-                <p className="text-investText/40 font-medium">No holdings yet. Go to the Market tab to make your first trade!</p>
+          <div className="h-full flex overflow-hidden">
+
+            {/* LEFT — Holdings list */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Briefcase className="w-5 h-5 text-investPrimary" />
+                <h2 className="font-black text-xl font-serif text-investText">My Portfolio</h2>
               </div>
-            ) : (
+
+              {holdings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-investSidebar flex items-center justify-center">
+                    <TrendingUp className="w-8 h-8 text-investText/20" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-investText/40">No holdings yet</p>
+                    <p className="text-sm text-investText/30 mt-1">Switch to the Market tab and buy your first stock</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('market')}
+                    className="mt-2 px-5 py-2.5 rounded-xl bg-investPrimary text-white text-sm font-bold hover:bg-investPrimaryLight transition-colors"
+                  >
+                    Browse Market
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {holdings.map(h => {
+                    const currentPrice = MOCK_STOCKS.find(s => s.ticker === h.ticker)?.price ?? h.avgCost;
+                    const gainLoss = (currentPrice - h.avgCost) * h.shares;
+                    const gainPct = ((currentPrice - h.avgCost) / h.avgCost) * 100;
+                    const isUp = gainLoss >= 0;
+                    return (
+                      <div key={h.ticker} className="bg-white rounded-2xl border border-black/5 p-5 flex items-center gap-5">
+                        <div className="w-12 h-12 rounded-xl bg-investSidebar flex items-center justify-center shrink-0">
+                          <span className="text-sm font-black text-investText">{h.ticker.slice(0, 3)}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-investText">{h.ticker}</p>
+                          <p className="text-sm text-investText/50">{h.shares} share{h.shares !== 1 ? 's' : ''} · Avg {formatCurrency(h.avgCost)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-investText">{formatCurrency(currentPrice * h.shares)}</p>
+                          <p className={`text-sm font-semibold flex items-center justify-end gap-1 ${isUp ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            {isUp ? '+' : ''}{formatCurrency(gainLoss)} ({formatPct(gainPct)})
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="bg-investSidebar rounded-2xl p-4 flex justify-between items-center border border-investSidebar/80">
+                    <span className="font-bold text-investText/70 text-sm">Cash Remaining</span>
+                    <span className="font-black text-investText">{formatCurrency(cashBalance)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT — Always-visible account summary */}
+            <div className="w-[340px] shrink-0 border-l border-investSidebar/80 bg-investSidebar/40 overflow-y-auto p-6 space-y-5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50">Account Summary</h3>
+
+              {/* Value breakdown */}
               <div className="space-y-3">
-                {holdings.map(h => {
-                  const currentPrice = MOCK_STOCKS.find(s => s.ticker === h.ticker)?.price ?? h.avgCost;
-                  const gainLoss = (currentPrice - h.avgCost) * h.shares;
-                  const gainPct = ((currentPrice - h.avgCost) / h.avgCost) * 100;
-                  const isUp = gainLoss >= 0;
+                {[
+                  { label: 'Total Account Value', value: formatCurrency(cashBalance + holdings.reduce((s, h) => s + (MOCK_STOCKS.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0)), highlight: true },
+                  { label: 'Invested in Stocks', value: formatCurrency(holdings.reduce((s, h) => s + (MOCK_STOCKS.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0)) },
+                  { label: 'Available Cash', value: formatCurrency(cashBalance) },
+                  { label: 'Starting Cash', value: formatCurrency(INITIAL_CASH) },
+                ].map(row => (
+                  <div key={row.label} className={`flex justify-between items-center px-4 py-3 rounded-xl ${row.highlight ? 'bg-investPrimary/10 border border-investPrimary/20' : 'bg-white border border-black/5'}`}>
+                    <span className={`text-sm ${row.highlight ? 'font-bold text-investText' : 'text-investText/60'}`}>{row.label}</span>
+                    <span className={`font-black ${row.highlight ? 'text-investPrimary' : 'text-investText'}`}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Allocation bar */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-2">Allocation</h4>
+                {(() => {
+                  const invested = holdings.reduce((s, h) => s + (MOCK_STOCKS.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0);
+                  const total = cashBalance + invested;
+                  const investedPct = total > 0 ? (invested / total) * 100 : 0;
+                  const cashPct = 100 - investedPct;
                   return (
-                    <div key={h.ticker} className="bg-white rounded-2xl border border-black/5 p-5 flex items-center gap-6">
-                      <div className="w-12 h-12 rounded-xl bg-investSidebar flex items-center justify-center shrink-0">
-                        <span className="text-sm font-black text-investText">{h.ticker.slice(0, 3)}</span>
+                    <div className="space-y-2">
+                      <div className="h-3 w-full bg-white rounded-full overflow-hidden flex border border-black/5">
+                        <div className="h-full bg-investPrimary transition-all duration-500" style={{ width: `${investedPct}%` }} />
+                        <div className="h-full bg-investSidebar flex-1" />
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-investText">{h.ticker}</p>
-                        <p className="text-sm text-investText/50">{h.shares} share{h.shares !== 1 ? 's' : ''} · Avg cost {formatCurrency(h.avgCost)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-investText">{formatCurrency(currentPrice * h.shares)}</p>
-                        <p className={`text-sm font-semibold flex items-center justify-end gap-1 ${isUp ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {isUp ? '+' : ''}{formatCurrency(gainLoss)} ({formatPct(gainPct)})
-                        </p>
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-investPrimary inline-block" />Stocks {investedPct.toFixed(0)}%</span>
+                        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-investSidebar border border-black/10 inline-block" />Cash {cashPct.toFixed(0)}%</span>
                       </div>
                     </div>
                   );
-                })}
-                <div className="bg-investSidebar rounded-2xl p-4 flex justify-between items-center border border-investSidebar">
-                  <span className="font-bold text-investText/70 text-sm">Cash Remaining</span>
-                  <span className="font-black text-investText">{formatCurrency(cashBalance)}</span>
-                </div>
+                })()}
               </div>
-            )}
+
+              {/* Holdings count */}
+              <div className="bg-white rounded-xl border border-black/5 px-4 py-3 flex justify-between items-center">
+                <span className="text-sm text-investText/60">Positions held</span>
+                <span className="font-black text-investText">{holdings.length}</span>
+              </div>
+
+              {/* Tip */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Info className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-600">Tip</span>
+                </div>
+                <p className="text-xs text-amber-800">Keep at least 20–30% in cash so you can take advantage of dips in the market.</p>
+              </div>
+            </div>
+
           </div>
         )}
+
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && ageGroup !== 'adult' && (
