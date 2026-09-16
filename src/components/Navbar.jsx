@@ -75,17 +75,6 @@ export default function Navbar({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* XP & Streak Stats */}
-      <div className="flex items-center gap-4 shrink-0">
-        <div className="flex items-center gap-1.5 text-sm font-bold text-investPrimary">
-          <span className="text-lg">{userProgress.xp}</span>
-          <span className="text-xs font-medium text-investText/50 uppercase tracking-wider">XP</span>
-        </div>
-        <div className="flex items-center gap-1 text-sm font-bold text-orange-500">
-          <Flame className="w-4 h-4" />
-          <span>{userProgress.streak}</span>
-        </div>
-      </div>
 
       {/* User Profile */}
       <div className="relative shrink-0">

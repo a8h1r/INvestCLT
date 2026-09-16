@@ -259,7 +259,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
 
       {/* Top Stats Bar */}
       <div className="bg-investSidebar border-b border-investSidebar/80 px-6 py-3 flex items-center gap-8 shrink-0">
