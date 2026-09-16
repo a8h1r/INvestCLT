@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, Trophy, Medal, Award, ShoppingCart, X, ChevronUp, ChevronDown, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trophy, ShoppingCart, X, ChevronUp, ChevronDown, Users, BarChart2, Briefcase, Medal, Info, Circle } from 'lucide-react';
 import { MOCK_STOCKS, SCHOOL_LEADERBOARD, CURRENT_STUDENT } from '../data';
 
-// ─── PORTFOLIO STATE ──────────────────────────────────────────────────────────
 const INITIAL_CASH = 10000;
 
 function formatCurrency(n) {
@@ -12,11 +11,27 @@ function formatPct(n) {
   return `${n > 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
+// ─── RANK BADGE ───────────────────────────────────────────────────────────────
+function RankBadge({ rank, size = 'md' }) {
+  const colors = [
+    'bg-amber-400 text-white',   // 1st - gold
+    'bg-slate-400 text-white',   // 2nd - silver
+    'bg-orange-400 text-white',  // 3rd - bronze
+  ];
+  const sizeClass = size === 'lg' ? 'w-8 h-8 text-sm' : 'w-6 h-6 text-xs';
+  if (rank <= 3) {
+    return (
+      <div className={`${sizeClass} rounded-full ${colors[rank - 1]} flex items-center justify-center font-black shrink-0`}>
+        {rank}
+      </div>
+    );
+  }
+  return <span className="w-6 text-sm font-black text-investText/40 text-center shrink-0">#{rank}</span>;
+}
+
 // ─── LEADERBOARD PANEL ────────────────────────────────────────────────────────
-function LeaderboardPanel({ ageGroup }) {
+function LeaderboardPanel() {
   const podium = SCHOOL_LEADERBOARD.slice(0, 3);
-  const rest   = SCHOOL_LEADERBOARD.slice(3);
-  const medals = ['🥇', '🥈', '🥉'];
   const podiumColors = [
     'from-amber-50 to-amber-100 border-amber-300',
     'from-slate-50 to-slate-100 border-slate-300',
@@ -24,10 +39,13 @@ function LeaderboardPanel({ ageGroup }) {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      <div>
-        <h2 className="font-black text-2xl font-serif text-investText mb-1">🏆 School Leaderboard</h2>
-        <p className="text-sm text-investText/60">Ranked by average student portfolio return · Class of 2025</p>
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl mx-auto w-full">
+      <div className="flex items-center gap-3">
+        <Trophy className="w-6 h-6 text-investPrimary" />
+        <div>
+          <h2 className="font-black text-2xl font-serif text-investText">School Leaderboard</h2>
+          <p className="text-sm text-investText/60">Ranked by average student portfolio return · Class of 2025</p>
+        </div>
       </div>
 
       {/* Your School Stats */}
@@ -40,9 +58,12 @@ function LeaderboardPanel({ ageGroup }) {
               You are ranked <span className="font-bold text-investPrimary">#{CURRENT_STUDENT.classRank}</span> out of {CURRENT_STUDENT.classTotal} students
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-black text-investPrimary">{medals[CURRENT_STUDENT.schoolRank - 1]} #{CURRENT_STUDENT.schoolRank}</p>
-            <p className="text-xs text-investText/50">School Rank</p>
+          <div className="flex items-center gap-2">
+            <RankBadge rank={CURRENT_STUDENT.schoolRank} size="lg" />
+            <div className="text-right">
+              <p className="text-2xl font-black text-investPrimary">#{CURRENT_STUDENT.schoolRank}</p>
+              <p className="text-xs text-investText/50">School Rank</p>
+            </div>
           </div>
         </div>
       </div>
@@ -53,7 +74,9 @@ function LeaderboardPanel({ ageGroup }) {
         <div className="grid grid-cols-3 gap-3">
           {podium.map((s, i) => (
             <div key={s.rank} className={`bg-gradient-to-b ${podiumColors[i]} border rounded-2xl p-4 text-center`}>
-              <div className="text-3xl mb-1">{medals[i]}</div>
+              <div className="flex justify-center mb-2">
+                <RankBadge rank={s.rank} size="lg" />
+              </div>
               <p className="text-xs font-bold text-investText leading-tight">{s.school.replace(' High School', '').replace(' High', '')}</p>
               <p className="text-lg font-black text-investPrimary mt-1">{formatPct(s.avgReturn)}</p>
               <p className="text-xs text-investText/50">{s.students} students</p>
@@ -72,7 +95,7 @@ function LeaderboardPanel({ ageGroup }) {
               className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors
                 ${s.school === CURRENT_STUDENT.school ? 'bg-investPrimary/10 border-investPrimary/30' : 'bg-white border-black/5 hover:bg-investBg'}`}
             >
-              <span className="w-6 text-sm font-black text-investText/40 text-center">{s.rank <= 3 ? medals[s.rank - 1] : `#${s.rank}`}</span>
+              <RankBadge rank={s.rank} />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-investText">{s.school}</p>
                 <div className="flex items-center gap-1 text-xs text-investText/50">
@@ -182,7 +205,6 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
   const [buyTarget, setBuyTarget] = useState(null);
   const [activeTab, setActiveTab] = useState(showLeaderboard ? 'leaderboard' : 'market');
 
-  // Keep leaderboard tab in sync if triggered from Navbar
   if (showLeaderboard && activeTab !== 'leaderboard') {
     setActiveTab('leaderboard');
   }
@@ -212,9 +234,9 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
   const totalReturn = ((totalValue - INITIAL_CASH) / INITIAL_CASH) * 100;
 
   const tabs = [
-    { id: 'market',      label: '📈 Market' },
-    { id: 'portfolio',   label: '💼 Portfolio' },
-    ...(ageGroup !== 'adult' ? [{ id: 'leaderboard', label: '🏆 Leaderboard' }] : []),
+    { id: 'market',    label: 'Market',      icon: BarChart2 },
+    { id: 'portfolio', label: 'Portfolio',   icon: Briefcase },
+    ...(ageGroup !== 'adult' ? [{ id: 'leaderboard', label: 'Leaderboard', icon: Trophy }] : []),
   ];
 
   return (
@@ -232,12 +254,18 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
         </div>
         <div>
           <p className="text-xs uppercase font-bold tracking-wider text-investText/50">Portfolio Return</p>
-          <p className={`text-xl font-black ${totalReturn >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{formatPct(totalReturn)}</p>
+          <p className={`text-xl font-black flex items-center gap-1 ${totalReturn >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            {totalReturn >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+            {formatPct(totalReturn)}
+          </p>
         </div>
         {ageGroup !== 'adult' && (
           <div>
             <p className="text-xs uppercase font-bold tracking-wider text-investText/50">Your School Rank</p>
-            <p className="text-xl font-black text-amber-600">🥈 #{CURRENT_STUDENT.schoolRank}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <RankBadge rank={CURRENT_STUDENT.schoolRank} size="lg" />
+              <p className="text-xl font-black text-investText">#{CURRENT_STUDENT.schoolRank}</p>
+            </div>
           </div>
         )}
         <div className="flex-1" />
@@ -249,70 +277,81 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
 
       {/* Tab Bar */}
       <div className="bg-investBg border-b border-investSidebar/80 px-6 flex items-center gap-1 shrink-0">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors
-              ${activeTab === tab.id
-                ? 'border-investPrimary text-investPrimary'
-                : 'border-transparent text-investText/50 hover:text-investText'}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors
+                ${activeTab === tab.id
+                  ? 'border-investPrimary text-investPrimary'
+                  : 'border-transparent text-investText/50 hover:text-investText'}`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
 
-        {/* Market Tab */}
+        {/* Market Tab — full width stock list, info banner below header */}
         {activeTab === 'market' && (
-          <div className="h-full flex">
-            {/* Stock List */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <h2 className="font-black text-lg font-serif text-investText mb-4 px-2">
-                {ageGroup === 'adult' ? 'Market Watchlist' : '📊 Mock Market — Practice Trades'}
+          <div className="h-full flex flex-col overflow-y-auto">
+            <div className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
+              <h2 className="font-black text-lg font-serif text-investText">
+                {ageGroup === 'adult' ? 'Market Watchlist' : 'Mock Market — Practice Trades'}
               </h2>
-              <div className="space-y-1">
-                {MOCK_STOCKS.map(stock => (
-                  <StockRow key={stock.ticker} stock={stock} onBuy={setBuyTarget} />
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-semibold text-investText/50">Simulated · Live prices</span>
               </div>
             </div>
 
-            {/* Info Panel */}
-            <div className="w-72 border-l border-investSidebar/80 bg-investSidebar p-5 overflow-y-auto shrink-0 space-y-5">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-2">How to Trade</h3>
-                <ol className="space-y-2 text-sm text-investText/70">
-                  <li className="flex gap-2"><span className="font-bold text-investPrimary shrink-0">1.</span>Hover a stock and click the 🛒 button to buy.</li>
-                  <li className="flex gap-2"><span className="font-bold text-investPrimary shrink-0">2.</span>Enter the number of shares you want.</li>
-                  <li className="flex gap-2"><span className="font-bold text-investPrimary shrink-0">3.</span>Confirm the purchase — your cash balance updates.</li>
-                  <li className="flex gap-2"><span className="font-bold text-investPrimary shrink-0">4.</span>Check your portfolio tab to track gains & losses.</li>
-                </ol>
+            {/* Pro Tip Banner — students only */}
+            {ageGroup !== 'adult' && (
+              <div className="mx-6 mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 shrink-0">
+                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800">
+                  <span className="font-bold">Pro Tip:</span> Diversify your portfolio! Putting all your money in one stock is risky. Try holding at least 3 different stocks or an index fund like SPY.
+                </p>
               </div>
-              {ageGroup !== 'adult' && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">💡 Pro Tip</p>
-                  <p className="text-xs text-amber-800">Diversify your portfolio! Putting all your money in one stock is risky. Try holding at least 3 different stocks or an index fund like SPY.</p>
+            )}
+
+            {/* How to Trade — inline compact strip */}
+            <div className="mx-6 mb-4 grid grid-cols-4 gap-3 shrink-0">
+              {[
+                'Hover a stock and click the cart icon to buy.',
+                'Enter the number of shares you want.',
+                'Confirm — your cash balance updates instantly.',
+                'Check the Portfolio tab to track your gains.'
+              ].map((tip, i) => (
+                <div key={i} className="bg-investSidebar rounded-xl p-3 flex gap-2 items-start">
+                  <span className="text-xs font-black text-investPrimary shrink-0">{i + 1}.</span>
+                  <p className="text-xs text-investText/70">{tip}</p>
                 </div>
-              )}
-              <div className="bg-investBg rounded-xl p-4 border border-investSidebar">
-                <p className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-2">Market Status</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-sm font-semibold text-investText">Simulated · Real-time prices</span>
-                </div>
-              </div>
+              ))}
+            </div>
+
+            {/* Stock List */}
+            <div className="px-4 pb-6 space-y-1">
+              {MOCK_STOCKS.map(stock => (
+                <StockRow key={stock.ticker} stock={stock} onBuy={setBuyTarget} />
+              ))}
             </div>
           </div>
         )}
 
         {/* Portfolio Tab */}
         {activeTab === 'portfolio' && (
-          <div className="h-full overflow-y-auto p-6 space-y-6 max-w-3xl mx-auto">
-            <h2 className="font-black text-2xl font-serif text-investText">💼 My Portfolio</h2>
+          <div className="h-full overflow-y-auto p-6 space-y-6 max-w-3xl mx-auto w-full">
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-6 h-6 text-investPrimary" />
+              <h2 className="font-black text-2xl font-serif text-investText">My Portfolio</h2>
+            </div>
             {holdings.length === 0 ? (
               <div className="text-center py-20 space-y-3">
                 <TrendingUp className="w-12 h-12 text-investText/20 mx-auto" />
@@ -328,7 +367,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
                   return (
                     <div key={h.ticker} className="bg-white rounded-2xl border border-black/5 p-5 flex items-center gap-6">
                       <div className="w-12 h-12 rounded-xl bg-investSidebar flex items-center justify-center shrink-0">
-                        <span className="text-sm font-black text-investText">{h.ticker.slice(0,3)}</span>
+                        <span className="text-sm font-black text-investText">{h.ticker.slice(0, 3)}</span>
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-investText">{h.ticker}</p>
@@ -336,7 +375,8 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-investText">{formatCurrency(currentPrice * h.shares)}</p>
-                        <p className={`text-sm font-semibold ${isUp ? 'text-emerald-600' : 'text-red-500'}`}>
+                        <p className={`text-sm font-semibold flex items-center justify-end gap-1 ${isUp ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                           {isUp ? '+' : ''}{formatCurrency(gainLoss)} ({formatPct(gainPct)})
                         </p>
                       </div>
@@ -354,7 +394,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && ageGroup !== 'adult' && (
-          <LeaderboardPanel ageGroup={ageGroup} />
+          <LeaderboardPanel />
         )}
 
       </div>
