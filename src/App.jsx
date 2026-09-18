@@ -10,20 +10,21 @@ import { CURRICULUM, EXERCISES, TOPICS_BY_GROUP } from './data';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // App-level mode & age group state
   const [appMode, setAppMode] = useState('learn'); // 'learn' | 'invest'
-  const [ageGroup, setAgeGroup] = useState('high'); // 'middle' | 'high' | 'adult'
+  const [ageGroup, setAgeGroup] = useState('high'); // 'k2' | 'elem35' | 'middle' | 'high' | 'adult'
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Get the first lesson of the first topic for the current age group
   const getDefaultView = (group) => {
-    const topics = TOPICS_BY_GROUP[group];
-    const firstTopic = topics[0];
+    const topics = TOPICS_BY_GROUP[group] || TOPICS_BY_GROUP.high;
+    const firstTopic = topics[0] || { id: 'investing' };
     const firstLesson = CURRICULUM[firstTopic.id]?.subtopics[0]?.lessons[0];
     return {
       type: 'lesson',
-      id: firstLesson?.id || 'what-is-a-budget',
+      id: firstLesson?.id || 'what-is-investing',
       topicId: firstTopic.id
     };
   };
@@ -38,12 +39,23 @@ function App() {
   });
   const [showCertificate, setShowCertificate] = useState(false);
 
-  const handleSignIn = () => setIsAuthenticated(true);
+  const handleSignIn = (userData) => {
+    setCurrentUser(userData);
+    setIsAuthenticated(true);
+    setAgeGroup(userData.ageGroup || 'high');
+    setActiveView(getDefaultView(userData.ageGroup || 'high'));
 
-  // When age group changes, reset active view to first lesson of the new group
-  const handleAgeGroupChange = (group) => {
-    setAgeGroup(group);
-    setActiveView(getDefaultView(group));
+    // If adult personal email, default directly to Invest / Market Utility mode!
+    if (!userData.isGamified) {
+      setAppMode('invest');
+    } else {
+      setAppMode('learn');
+    }
+  };
+
+  const handleSignOut = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
   };
 
   const markLessonComplete = (lessonId) => {
@@ -127,6 +139,8 @@ function App() {
         ageGroup={ageGroup}
         userProgress={userProgress}
         onShowLeaderboard={() => { setAppMode('invest'); setShowLeaderboard(true); }}
+        currentUser={currentUser}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Content — switches between Learn and Invest modes */}
@@ -144,6 +158,7 @@ function App() {
           <InvestView
             ageGroup={ageGroup}
             showLeaderboard={showLeaderboard}
+            currentUser={currentUser}
           />
         )}
       </div>
@@ -159,3 +174,4 @@ function App() {
 }
 
 export default App;
+

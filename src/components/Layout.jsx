@@ -21,7 +21,7 @@ export default function Layout({ children, activeView, onNavigate, userProgress,
     <div className="flex flex-1 overflow-hidden bg-investBg">
       
       {/* LEFT SIDEBAR: Age-group-filtered Accordion Navigation */}
-      <aside className="w-72 bg-investSidebar border-r border-investSidebar/80 overflow-y-auto flex flex-col shrink-0 z-0">
+      <aside className="w-80 bg-investSidebar border-r border-investSidebar/80 overflow-y-auto flex flex-col shrink-0 z-0">
         <div className="p-4 space-y-1">
           {topics.map(topic => {
             const isExpanded = expandedTopics[topic.id];
@@ -30,15 +30,35 @@ export default function Layout({ children, activeView, onNavigate, userProgress,
 
             if (!topicData) return null;
 
+            let total = 0, completed = 0;
+            topicData.subtopics.forEach(sub => {
+              sub.lessons.forEach(l => {
+                total++;
+                if (userProgress.completedLessons.includes(l.id)) completed++;
+              });
+            });
+            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
             return (
               <div key={topic.id} className="mb-2">
                 {/* Section Header */}
                 <button
                   onClick={() => toggleTopic(topic.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-investText font-bold text-left hover:bg-black/5 rounded-lg transition-colors font-serif"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-investText font-bold text-left hover:bg-black/5 rounded-lg transition-colors font-serif group"
                 >
-                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  {topic.title}
+                  <div className="flex-1 flex items-start gap-2">
+                    {isExpanded ? <ChevronDown className="w-4 h-4 shrink-0 mt-0.5" /> : <ChevronRight className="w-4 h-4 shrink-0 mt-0.5" />}
+                    <span className="leading-snug text-left">{topic.title}</span>
+                  </div>
+                  {/* Inline Progress */}
+                  {total > 0 && (
+                    <div className="flex items-center gap-2 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-bold font-sans">{completed}/{total}</span>
+                      <div className="w-10 h-1.5 bg-black/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-investPrimary rounded-full transition-all duration-500 ease-out" style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
+                  )}
                 </button>
 
                 {/* Section Content */}
@@ -105,33 +125,7 @@ export default function Layout({ children, activeView, onNavigate, userProgress,
           })}
         </div>
 
-        {/* Module Progress at bottom of sidebar */}
-        <div className="mt-auto p-4 border-t border-investSidebar/80 space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-investText/50">Module Progress</h3>
-          {topics.map(topic => {
-            const topicData = CURRICULUM[topic.id];
-            if (!topicData) return null;
-            let total = 0, completed = 0;
-            topicData.subtopics.forEach(sub => {
-              sub.lessons.forEach(l => {
-                total++;
-                if (userProgress.completedLessons.includes(l.id)) completed++;
-              });
-            });
-            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-            return (
-              <div key={topic.id}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-investText/70">{topic.title}</span>
-                  <span className="font-bold text-investText/50">{percent}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-investText/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-investPrimary rounded-full transition-all duration-500 ease-out" style={{ width: `${percent}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+
       </aside>
 
       {/* MAIN CONTENT AREA */}

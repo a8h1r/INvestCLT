@@ -48,15 +48,17 @@ export default function LessonPage({ topicId, lessonId, markComplete, onNavigate
   let foundCurrent = false;
 
   const topicData = CURRICULUM[topicId];
-  
-  for (const sub of topicData.subtopics) {
-    for (const lesson of sub.lessons) {
-      if (foundCurrent && !nextLessonId) {
-        nextLessonId = lesson.id;
-      }
-      if (lesson.id === lessonId) {
-        currentLesson = lesson;
-        foundCurrent = true;
+
+  if (topicData) {
+    for (const sub of topicData.subtopics) {
+      for (const lesson of sub.lessons) {
+        if (foundCurrent && !nextLessonId) {
+          nextLessonId = lesson.id;
+        }
+        if (lesson.id === lessonId) {
+          currentLesson = lesson;
+          foundCurrent = true;
+        }
       }
     }
   }
@@ -66,7 +68,7 @@ export default function LessonPage({ topicId, lessonId, markComplete, onNavigate
     window.scrollTo(0, 0);
   }, [lessonId]);
 
-  if (!currentLesson) return <div>Lesson not found</div>;
+  if (!currentLesson) return <div className="p-8 text-investText/50 font-bold">Lesson not found.</div>;
 
   const isCompleted = userProgress.completedLessons.includes(lessonId);
 

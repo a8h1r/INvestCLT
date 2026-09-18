@@ -218,15 +218,89 @@ function BuyModal({ stock, cashBalance, onConfirm, onClose }) {
   );
 }
 
+// ─── SELL MODAL ───────────────────────────────────────────────────────────────
+function SellModal({ stock, onConfirm, onClose }) {
+  const [sharesToSell, setSharesToSell] = useState(1);
+  const proceeds = sharesToSell * stock.currentPrice;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black font-serif text-xl text-investText">Sell {stock.ticker}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-investBg"><X className="w-5 h-5 text-investText/50" /></button>
+        </div>
+        
+        <div className="bg-investBg rounded-xl p-4 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-investText/60">Current Price</span>
+            <span className="font-bold text-investText">{formatCurrency(stock.currentPrice)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-investText/60">Shares Owned</span>
+            <span className="font-bold text-investText">{stock.shares}</span>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-bold uppercase tracking-wider text-investText/50">Shares to Sell</label>
+          <input
+            type="number"
+            min={1}
+            max={stock.shares}
+            value={sharesToSell}
+            onChange={e => setSharesToSell(Math.min(stock.shares, Math.max(1, parseInt(e.target.value) || 1)))}
+            className="w-full border border-investSidebar rounded-xl px-4 py-2.5 text-investText font-bold focus:outline-none focus:border-investPrimary"
+          />
+        </div>
+        <div className="bg-emerald-50 rounded-xl p-4 flex justify-between items-center border border-emerald-100">
+          <span className="text-sm font-bold text-emerald-800">Proceeds (Cash Added)</span>
+          <span className="text-lg font-black text-emerald-600">+{formatCurrency(proceeds)}</span>
+        </div>
+        
+        <div className="flex gap-3 mt-4">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-investSidebar text-investText font-semibold text-sm hover:bg-investBg transition-colors">Cancel</button>
+          <button
+            onClick={() => onConfirm(stock.ticker, sharesToSell, proceeds)}
+            className="flex-1 py-2.5 rounded-xl bg-investText text-white font-bold text-sm hover:bg-black transition-colors"
+          >
+            Confirm Sell
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN INVEST VIEW ─────────────────────────────────────────────────────────
-export default function InvestView({ ageGroup, showLeaderboard }) {
+export default function InvestView({ ageGroup, showLeaderboard, currentUser }) {
   const [cashBalance, setCashBalance] = useState(INITIAL_CASH);
   const [holdings, setHoldings] = useState([]);
   const [buyTarget, setBuyTarget] = useState(null);
-  const [activeTab, setActiveTab] = useState(showLeaderboard ? 'leaderboard' : 'market');
+  const [sellTarget, setSellTarget] = useState(null);
+
+  const [searchTicker, setSearchTicker] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+
+  const isGamified = currentUser?.isGamified ?? (ageGroup !== 'adult');
+  const [activeTab, setActiveTab] = useState(showLeaderboard && isGamified ? 'leaderboard' : 'market');
   const [stocks, setStocks] = useState(MOCK_STOCKS);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
   const isLive = isLiveApiConfigured();
+
+  const loadLiveQuotes = async () => {
+    if (!isLive) return;
+    setIsLoadingQuotes(true);
+    try {
+      const tickers = stocks.map(s => s.ticker);
+      const updated = await fetchMultipleQuotes(tickers);
+      if (updated && updated.length) {
+        setStocks(updated);
+      }
+    } finally {
+      setIsLoadingQuotes(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -244,7 +318,37 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
     return () => { isMounted = false; };
   }, [isLive]);
 
-  if (showLeaderboard && activeTab !== 'leaderboard') {
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchTicker.trim() || !isLive) return;
+    
+    const symbol = searchTicker.toUpperCase().trim();
+    if (stocks.find(s => s.ticker === symbol)) {
+      setSearchError('Stock is already in the market list.');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      // Use the stockService to fetch the quote
+      const { fetchStockQuote } = await import('../services/stockService');
+      const quote = await fetchStockQuote(symbol);
+      
+      if (quote && quote.price > 0) {
+        setStocks(prev => [quote, ...prev]);
+        setSearchTicker('');
+      } else {
+        setSearchError('Invalid ticker or no data found.');
+      }
+    } catch (err) {
+      setSearchError('Error fetching stock. Check API key.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  if (showLeaderboard && isGamified && activeTab !== 'leaderboard') {
     setActiveTab('leaderboard');
   }
 
@@ -265,6 +369,19 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
     setBuyTarget(null);
   };
 
+  const handleSell = (ticker, sharesSold, proceeds) => {
+    setCashBalance(prev => prev + proceeds);
+    setHoldings(prev => {
+      return prev.map(h => {
+        if (h.ticker === ticker) {
+          return { ...h, shares: h.shares - sharesSold };
+        }
+        return h;
+      }).filter(h => h.shares > 0);
+    });
+    setSellTarget(null);
+  };
+
   const portfolioValue = holdings.reduce((sum, h) => {
     const current = stocks.find(s => s.ticker === h.ticker)?.price ?? h.avgCost;
     return sum + current * h.shares;
@@ -275,7 +392,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
   const tabs = [
     { id: 'market',    label: 'Market',      icon: BarChart2 },
     { id: 'portfolio', label: 'Portfolio',   icon: Briefcase },
-    ...(ageGroup !== 'adult' ? [{ id: 'leaderboard', label: 'Leaderboard', icon: Trophy }] : []),
+    ...(isGamified ? [{ id: 'leaderboard', label: 'School Leaderboard', icon: Trophy }] : []),
   ];
 
   return (
@@ -298,7 +415,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
             {formatPct(totalReturn)}
           </p>
         </div>
-        {ageGroup !== 'adult' && (
+        {isGamified && (
           <div>
             <p className="text-xs uppercase font-bold tracking-wider text-investText/50">Your School Rank</p>
             <div className="flex items-center gap-2 mt-0.5">
@@ -342,18 +459,53 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
           <div className="h-full flex flex-col overflow-y-auto">
             <div className="px-6 pt-5 pb-3 flex items-center justify-between shrink-0">
               <h2 className="font-black text-lg font-serif text-investText">
-                {ageGroup === 'adult' ? 'Market Watchlist' : 'Mock Market — Practice Trades'}
+                {isGamified ? 'Mock Market — Practice Trades' : 'Real-World Market & ETF Watchlist'}
               </h2>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
-                <span className="text-xs font-semibold text-investText/60">
-                  {isLive ? (isLoadingQuotes ? 'Updating quotes...' : 'Live Finnhub Market Data') : 'Demo Mode (Static Quotes)'}
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                  <span className="text-xs font-semibold text-investText/60">
+                    {isLive ? (isLoadingQuotes ? 'Updating quotes...' : 'Live Finnhub Market Data') : 'Demo Mode (Static Quotes)'}
+                  </span>
+                </div>
+                {isLive && (
+                  <button 
+                    onClick={loadLiveQuotes}
+                    disabled={isLoadingQuotes}
+                    className="p-1.5 rounded-lg hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Refresh Live Prices"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-investText/60 ${isLoadingQuotes ? 'animate-spin' : ''}`} />
+                  </button>
+                )}
               </div>
             </div>
 
+            {/* Search Bar */}
+            {isLive && (
+              <div className="mx-6 mb-4">
+                <form onSubmit={handleSearch} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={searchTicker}
+                    onChange={e => { setSearchTicker(e.target.value); setSearchError(null); }}
+                    placeholder="Search by Ticker Symbol (e.g., TSLA, GME)..."
+                    className="flex-1 bg-white border border-black/10 rounded-xl px-4 py-2.5 text-sm font-semibold text-investText focus:outline-none focus:border-investPrimary shadow-sm"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isSearching || !searchTicker.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-investText text-white text-sm font-bold hover:bg-black transition-colors disabled:opacity-50"
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </button>
+                </form>
+                {searchError && <p className="text-xs font-semibold text-red-500 mt-2 ml-1">{searchError}</p>}
+              </div>
+            )}
+
             {/* Pro Tip Banner — students only */}
-            {ageGroup !== 'adult' && (
+            {isGamified && (
               <div className="mx-6 mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 shrink-0">
                 <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800">
@@ -416,12 +568,13 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
               ) : (
                 <div className="space-y-3">
                   {holdings.map(h => {
-                    const currentPrice = MOCK_STOCKS.find(s => s.ticker === h.ticker)?.price ?? h.avgCost;
+                    const currentStockData = stocks.find(s => s.ticker === h.ticker);
+                    const currentPrice = currentStockData?.price ?? h.avgCost;
                     const gainLoss = (currentPrice - h.avgCost) * h.shares;
                     const gainPct = ((currentPrice - h.avgCost) / h.avgCost) * 100;
                     const isUp = gainLoss >= 0;
                     return (
-                      <div key={h.ticker} className="bg-white rounded-2xl border border-black/5 p-5 flex items-center gap-5">
+                      <div key={h.ticker} className="bg-white rounded-2xl border border-black/5 p-5 flex items-center gap-5 group">
                         <div className="w-12 h-12 rounded-xl bg-investSidebar flex items-center justify-center shrink-0">
                           <span className="text-sm font-black text-investText">{h.ticker.slice(0, 3)}</span>
                         </div>
@@ -436,6 +589,12 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
                             {isUp ? '+' : ''}{formatCurrency(gainLoss)} ({formatPct(gainPct)})
                           </p>
                         </div>
+                        <button
+                          onClick={() => setSellTarget({ ...h, currentPrice })}
+                          className="opacity-0 group-hover:opacity-100 ml-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-all shrink-0 text-sm border border-red-200"
+                        >
+                          Sell
+                        </button>
                       </div>
                     );
                   })}
@@ -454,8 +613,8 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
               {/* Value breakdown */}
               <div className="space-y-3">
                 {[
-                  { label: 'Total Account Value', value: formatCurrency(cashBalance + holdings.reduce((s, h) => s + (MOCK_STOCKS.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0)), highlight: true },
-                  { label: 'Invested in Stocks', value: formatCurrency(holdings.reduce((s, h) => s + (MOCK_STOCKS.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0)) },
+                  { label: 'Total Account Value', value: formatCurrency(cashBalance + holdings.reduce((s, h) => s + (stocks.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0)), highlight: true },
+                  { label: 'Invested in Stocks', value: formatCurrency(holdings.reduce((s, h) => s + (stocks.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0)) },
                   { label: 'Available Cash', value: formatCurrency(cashBalance) },
                   { label: 'Starting Cash', value: formatCurrency(INITIAL_CASH) },
                 ].map(row => (
@@ -470,7 +629,7 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-investText/50 mb-2">Allocation</h4>
                 {(() => {
-                  const invested = holdings.reduce((s, h) => s + (MOCK_STOCKS.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0);
+                  const invested = holdings.reduce((s, h) => s + (stocks.find(st => st.ticker === h.ticker)?.price ?? h.avgCost) * h.shares, 0);
                   const total = cashBalance + invested;
                   const investedPct = total > 0 ? (invested / total) * 100 : 0;
                   const cashPct = 100 - investedPct;
@@ -509,14 +668,13 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
         )}
 
 
-        {/* Leaderboard Tab */}
-        {activeTab === 'leaderboard' && ageGroup !== 'adult' && (
+        {/* Leaderboard Tab (Students only) */}
+        {activeTab === 'leaderboard' && isGamified && (
           <LeaderboardPanel />
         )}
 
       </div>
 
-      {/* Buy Modal */}
       {buyTarget && (
         <BuyModal
           stock={buyTarget}
@@ -525,6 +683,15 @@ export default function InvestView({ ageGroup, showLeaderboard }) {
           onClose={() => setBuyTarget(null)}
         />
       )}
+
+      {sellTarget && (
+        <SellModal
+          stock={sellTarget}
+          onConfirm={handleSell}
+          onClose={() => setSellTarget(null)}
+        />
+      )}
     </div>
   );
 }
+
